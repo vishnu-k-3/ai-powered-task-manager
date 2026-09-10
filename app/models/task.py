@@ -1,5 +1,6 @@
+from datetime import date
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Integer, String, Boolean
+from sqlalchemy import Integer, String, Boolean, Date, ForeignKey
 
 from app.db.database import Base
 
@@ -10,6 +11,11 @@ class Todo(Base):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id")
     )
 
     title: Mapped[str] = mapped_column(
@@ -27,6 +33,6 @@ class Todo(Base):
         String(50)
     )
 
-    due_date: Mapped[str | None] = mapped_column(
-        String(110)
+    due_date: Mapped[date | None] = mapped_column(
+        Date
     )

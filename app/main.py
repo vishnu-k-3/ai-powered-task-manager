@@ -38,7 +38,12 @@ def task_list(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return view_all(db)
+    if not current_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized"
+        )
+    return view_all(current_user.id, db)
 
 
 @app.get("/tasks/{task_id}")
@@ -47,7 +52,18 @@ def task(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return view(task_id, db)
+    task = view(task_id, current_user.id, db)
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+    if task.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized"
+        )
+    return task
 
 
 @app.post("/tasks")
@@ -58,7 +74,7 @@ def task_add(
 ):
     task_dict = task.model_dump()
 
-    return add(task_dict, db)
+    return add(task_dict, current_user.id, db)
 
 
 @app.delete("/tasks/{task_id}")
@@ -67,9 +83,20 @@ def task_delete(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    delete(task_id, db)
+    task = view(task_id, current_user.id, db)
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+    if task.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized"
+        )
+    delete(task_id, current_user.id, db)
 
-    return view_all(db)
+    return view_all(current_user.id, db)
 
 
 @app.patch("/tasks/{task_id}")
@@ -79,9 +106,18 @@ def task_update(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    update(task_id, updated_task, db)
-
-    return view(task_id, db)
+    task = view(task_id, current_user.id, db)
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+    if task.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized"
+        )
+    return update(task, updated_task, db)
 
 @app.get("/tasks/status/{status}")
 def tasks_by_status(
@@ -89,7 +125,12 @@ def tasks_by_status(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return view_by_status(status, db)
+    if status not in ["pending", "in_progress", "completed"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid status"
+        )
+    return view_by_status(status, current_user.id, db)
 
 
 # ---- user section ----
